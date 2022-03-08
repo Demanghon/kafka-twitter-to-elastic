@@ -117,3 +117,14 @@ kubectl apply -f infra/k8s/kafka-connect-cluster.yml
 ```
 
 > We use the local registry create with the kind cluster. If you use another registry you can update the file infra/k8s/kafka-connect-cluster.yml to update the [registry url](https://strimzi.io/docs/operators/latest/configuring.html#con-common-configuration-images-reference).
+
+# Extra
+
+## Notes
+
+https://github.com/anhthii/kafka-notes
+
+## Convention
+
+https://cnr.sh/essays/how-paint-bike-shed-kafka-topic-naming-conventions
+
