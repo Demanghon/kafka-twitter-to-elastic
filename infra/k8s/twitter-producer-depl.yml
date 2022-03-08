@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twitter-producer-depl
+  namespace: twitter-to-elastic
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: twitter-producer
+  template:
+    metadata:
+      labels:
+        app: twitter-producer
+    spec:
+      containers:
+        - name: twitter-producer
+          image: localhost:5000/twitter-producer
+          env:
+            - name: TWITTER_BEARER
+              valueFrom:
+                secretKeyRef:
+                  name: twitter-producer
+                  key: TWITTER_BEARER
+            - name: CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-cluster-cluster-ca-cert
+                  key: ca.crt 
+            - name: BOOTSTRAP_SERVERS
+              value: kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
+            - name: TOPIC
+              value: twitter

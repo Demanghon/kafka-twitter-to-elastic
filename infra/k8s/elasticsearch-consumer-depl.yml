@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-consumer-depl
+  namespace: twitter-to-elastic
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: elasticsearch-consumer
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-consumer
+    spec:
+      containers:
+        - name: elasticsearch-consumer
+          image: localhost:5000/elasticsearch-consumer
+          env:
+            - name: KAFKA_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-cluster-cluster-ca-cert
+                  key: ca.crt 
+            - name: ES_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-cluster-es-http-certs-public
+                  key: ca.crt 
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-cluster-es-elastic-user
+                  key: elastic
+            - name: BOOTSTRAP_SERVERS
+              value: kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
+            - name: TOPIC
+              value: twitter
+            - name: ES_HOST
+              value: elasticsearch-cluster-es-http.elasticsearch.svc.cluster.local
+            - name: ES_PORT
+              value: "9200"

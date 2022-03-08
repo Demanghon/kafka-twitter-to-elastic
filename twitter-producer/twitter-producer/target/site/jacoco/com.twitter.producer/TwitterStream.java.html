@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwitterStream.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">twitter-producer</a> &gt; <a href="index.source.html" class="el_package">com.twitter.producer</a> &gt; <span class="el_source">TwitterStream.java</span></div><h1>TwitterStream.java</h1><pre class="source lang-java linenums">package com.twitter.producer;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.*;
+import java.net.URISyntaxException;
+import java.util.*;
+
+/**
+ * Connect to the Twitter Stream and push data to Kafka producer
+ */
+public class TwitterStream {
+
+    private String bearerToken;
+
+<span class="nc" id="L29">    public TwitterStream(String bearerToken) {</span>
+<span class="nc" id="L30">        this.bearerToken = bearerToken;</span>
+<span class="nc" id="L31">    }</span>
+
+    /*
+     * This method calls the filtered stream endpoint and streams Tweets from it
+     */
+    public void connectStream(StreamCallback callback) throws IOException, URISyntaxException {
+
+<span class="nc" id="L38">        HttpClient httpClient = HttpClients.custom()</span>
+<span class="nc" id="L39">                .setDefaultRequestConfig(RequestConfig.custom()</span>
+<span class="nc" id="L40">                        .setCookieSpec(CookieSpecs.STANDARD).build())</span>
+<span class="nc" id="L41">                .build();</span>
+
+<span class="nc" id="L43">        URIBuilder uriBuilder = new URIBuilder(&quot;https://api.twitter.com/2/tweets/search/stream&quot;);</span>
+
+<span class="nc" id="L45">        HttpGet httpGet = new HttpGet(uriBuilder.build());</span>
+<span class="nc" id="L46">        httpGet.setHeader(&quot;Authorization&quot;, String.format(&quot;Bearer %s&quot;, bearerToken));</span>
+
+<span class="nc" id="L48">        HttpResponse response = httpClient.execute(httpGet);</span>
+<span class="nc" id="L49">        HttpEntity entity = response.getEntity();</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (null != entity) {</span>
+<span class="nc" id="L51">            BufferedReader reader = new BufferedReader(new InputStreamReader((entity.getContent())));</span>
+<span class="nc" id="L52">            String line = reader.readLine();</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">            while (line != null) {</span>
+<span class="nc" id="L54">                System.out.println(line);</span>
+                try{
+<span class="nc" id="L56">                    JSONObject tweetJson = new JSONObject(line).getJSONObject(&quot;data&quot;);</span>
+<span class="nc" id="L57">                    callback.onTweetReceived(new Tweet(tweetJson.getLong(&quot;id&quot;), tweetJson.getString(&quot;text&quot;)));</span>
+<span class="nc" id="L58">                }catch(JSONException e){</span>
+<span class="nc" id="L59">                    System.out.println(&quot;THE DATA IS NOT PARSABLE!!!!!&quot;);</span>
+                }
+<span class="nc" id="L61">                line = reader.readLine();</span>
+            }
+        }
+<span class="nc" id="L64">    }</span>
+
+    /*
+     * Helper method to setup rules before streaming data
+     */
+    public void setupRules(Map&lt;String, String&gt; rules) throws IOException, URISyntaxException {
+<span class="nc" id="L70">        List&lt;String&gt; existingRules = getRules(bearerToken);</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (existingRules.size() &gt; 0) {</span>
+<span class="nc" id="L72">            deleteRules(bearerToken, existingRules);</span>
+        }
+<span class="nc" id="L74">        createRules(bearerToken, rules);</span>
+<span class="nc" id="L75">    }</span>
+
+    /*
+     * Helper method to create rules for filtering
+     */
+    public void createRules(String bearerToken, Map&lt;String, String&gt; rules) throws URISyntaxException, IOException {
+<span class="nc" id="L81">        HttpClient httpClient = HttpClients.custom()</span>
+<span class="nc" id="L82">                .setDefaultRequestConfig(RequestConfig.custom()</span>
+<span class="nc" id="L83">                        .setCookieSpec(CookieSpecs.STANDARD).build())</span>
+<span class="nc" id="L84">                .build();</span>
+
+<span class="nc" id="L86">        URIBuilder uriBuilder = new URIBuilder(&quot;https://api.twitter.com/2/tweets/search/stream/rules&quot;);</span>
+
+<span class="nc" id="L88">        HttpPost httpPost = new HttpPost(uriBuilder.build());</span>
+<span class="nc" id="L89">        httpPost.setHeader(&quot;Authorization&quot;, String.format(&quot;Bearer %s&quot;, bearerToken));</span>
+<span class="nc" id="L90">        httpPost.setHeader(&quot;content-type&quot;, &quot;application/json&quot;);</span>
+<span class="nc" id="L91">        StringEntity body = new StringEntity(getFormattedString(&quot;{\&quot;add\&quot;: [%s]}&quot;, rules));</span>
+<span class="nc" id="L92">        httpPost.setEntity(body);</span>
+<span class="nc" id="L93">        HttpResponse response = httpClient.execute(httpPost);</span>
+<span class="nc" id="L94">        HttpEntity entity = response.getEntity();</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (null != entity) {</span>
+<span class="nc" id="L96">            System.out.println(EntityUtils.toString(entity, &quot;UTF-8&quot;));</span>
+        }
+<span class="nc" id="L98">    }</span>
+
+    /*
+     * Helper method to get existing rules
+     */
+    public List&lt;String&gt; getRules(String bearerToken) throws URISyntaxException, IOException {
+<span class="nc" id="L104">        List&lt;String&gt; rules = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L105">        HttpClient httpClient = HttpClients.custom()</span>
+<span class="nc" id="L106">                .setDefaultRequestConfig(RequestConfig.custom()</span>
+<span class="nc" id="L107">                        .setCookieSpec(CookieSpecs.STANDARD).build())</span>
+<span class="nc" id="L108">                .build();</span>
+
+<span class="nc" id="L110">        URIBuilder uriBuilder = new URIBuilder(&quot;https://api.twitter.com/2/tweets/search/stream/rules&quot;);</span>
+
+<span class="nc" id="L112">        HttpGet httpGet = new HttpGet(uriBuilder.build());</span>
+<span class="nc" id="L113">        httpGet.setHeader(&quot;Authorization&quot;, String.format(&quot;Bearer %s&quot;, bearerToken));</span>
+<span class="nc" id="L114">        httpGet.setHeader(&quot;content-type&quot;, &quot;application/json&quot;);</span>
+<span class="nc" id="L115">        HttpResponse response = httpClient.execute(httpGet);</span>
+<span class="nc" id="L116">        HttpEntity entity = response.getEntity();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (null != entity) {</span>
+<span class="nc" id="L118">            JSONObject json = new JSONObject(EntityUtils.toString(entity, &quot;UTF-8&quot;));</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            if (json.length() &gt; 1) {</span>
+<span class="nc" id="L120">                JSONArray array = (JSONArray) json.get(&quot;data&quot;);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                for (int i = 0; i &lt; array.length(); i++) {</span>
+<span class="nc" id="L122">                    JSONObject jsonObject = (JSONObject) array.get(i);</span>
+<span class="nc" id="L123">                    rules.add(jsonObject.getString(&quot;id&quot;));</span>
+                }
+            }
+        }
+<span class="nc" id="L127">        return rules;</span>
+    }
+
+    /*
+     * Helper method to delete rules
+     */
+    public void deleteRules(String bearerToken, List&lt;String&gt; existingRules) throws URISyntaxException, IOException {
+<span class="nc" id="L134">        HttpClient httpClient = HttpClients.custom()</span>
+<span class="nc" id="L135">                .setDefaultRequestConfig(RequestConfig.custom()</span>
+<span class="nc" id="L136">                        .setCookieSpec(CookieSpecs.STANDARD).build())</span>
+<span class="nc" id="L137">                .build();</span>
+
+<span class="nc" id="L139">        URIBuilder uriBuilder = new URIBuilder(&quot;https://api.twitter.com/2/tweets/search/stream/rules&quot;);</span>
+
+<span class="nc" id="L141">        HttpPost httpPost = new HttpPost(uriBuilder.build());</span>
+<span class="nc" id="L142">        httpPost.setHeader(&quot;Authorization&quot;, String.format(&quot;Bearer %s&quot;, bearerToken));</span>
+<span class="nc" id="L143">        httpPost.setHeader(&quot;content-type&quot;, &quot;application/json&quot;);</span>
+<span class="nc" id="L144">        StringEntity body = new StringEntity(getFormattedString(&quot;{ \&quot;delete\&quot;: { \&quot;ids\&quot;: [%s]}}&quot;, existingRules));</span>
+<span class="nc" id="L145">        httpPost.setEntity(body);</span>
+<span class="nc" id="L146">        HttpResponse response = httpClient.execute(httpPost);</span>
+<span class="nc" id="L147">        HttpEntity entity = response.getEntity();</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (null != entity) {</span>
+<span class="nc" id="L149">            System.out.println(EntityUtils.toString(entity, &quot;UTF-8&quot;));</span>
+        }
+<span class="nc" id="L151">    }</span>
+
+    private String getFormattedString(String string, List&lt;String&gt; ids) {
+<span class="nc" id="L154">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        if (ids.size() == 1) {</span>
+<span class="nc" id="L156">            return String.format(string, &quot;\&quot;&quot; + ids.get(0) + &quot;\&quot;&quot;);</span>
+        } else {
+<span class="nc bnc" id="L158" title="All 2 branches missed.">            for (String id : ids) {</span>
+<span class="nc" id="L159">                sb.append(&quot;\&quot;&quot; + id + &quot;\&quot;&quot; + &quot;,&quot;);</span>
+            }
+<span class="nc" id="L161">            String result = sb.toString();</span>
+<span class="nc" id="L162">            return String.format(string, result.substring(0, result.length() - 1));</span>
+        }
+    }
+
+    private String getFormattedString(String string, Map&lt;String, String&gt; rules) {
+<span class="nc" id="L167">        StringBuilder sb = new StringBuilder();</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        if (rules.size() == 1) {</span>
+<span class="nc" id="L169">            String key = rules.keySet().iterator().next();</span>
+<span class="nc" id="L170">            return String.format(string, &quot;{\&quot;value\&quot;: \&quot;&quot; + key + &quot;\&quot;, \&quot;tag\&quot;: \&quot;&quot; + rules.get(key) + &quot;\&quot;}&quot;);</span>
+        } else {
+<span class="nc bnc" id="L172" title="All 2 branches missed.">            for (Map.Entry&lt;String, String&gt; entry : rules.entrySet()) {</span>
+<span class="nc" id="L173">                String value = entry.getKey();</span>
+<span class="nc" id="L174">                String tag = entry.getValue();</span>
+<span class="nc" id="L175">                sb.append(&quot;{\&quot;value\&quot;: \&quot;&quot; + value + &quot;\&quot;, \&quot;tag\&quot;: \&quot;&quot; + tag + &quot;\&quot;}&quot; + &quot;,&quot;);</span>
+            }
+<span class="nc" id="L177">            String result = sb.toString();</span>
+<span class="nc" id="L178">            return String.format(string, result.substring(0, result.length() - 1));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.4.201905082037</span></div></body></html>

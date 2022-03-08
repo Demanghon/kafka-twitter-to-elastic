@@ -1,0 +1,18 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "export ES_PASSWORD",
+            "command": "export ES_PASSWORD=$(kubectl get secrets elasticsearch-cluster-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode)",
+            "type": "shell",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                
+            }
+        }
+    ],
+}

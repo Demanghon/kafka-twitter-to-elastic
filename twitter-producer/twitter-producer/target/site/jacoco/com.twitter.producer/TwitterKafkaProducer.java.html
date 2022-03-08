@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwitterKafkaProducer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">twitter-producer</a> &gt; <a href="index.source.html" class="el_package">com.twitter.producer</a> &gt; <span class="el_source">TwitterKafkaProducer.java</span></div><h1>TwitterKafkaProducer.java</h1><pre class="source lang-java linenums">package com.twitter.producer;
+
+import java.util.Properties;
+
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.LongSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class TwitterKafkaProducer {
+
+<span class="nc" id="L17">    final Logger logger = LoggerFactory.getLogger(TwitterKafkaProducer.class);</span>
+
+    private static TwitterKafkaProducer instance;
+
+    private KafkaProducer&lt;Long, String&gt; producer;
+    private String topic;
+
+
+    public static TwitterKafkaProducer getInstance(){
+<span class="nc bnc" id="L26" title="All 2 branches missed.">        if(instance == null){</span>
+<span class="nc" id="L27">            instance = new TwitterKafkaProducer();</span>
+        }
+<span class="nc" id="L29">        return instance;</span>
+    }
+
+<span class="nc" id="L32">    private TwitterKafkaProducer(){</span>
+<span class="nc" id="L33">        String sslTruststoreCertificates = System.getenv(&quot;CA_CRT&quot;);</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">        if(sslTruststoreCertificates == null) throw new IllegalArgumentException(&quot;the CA_CRT env variable is not set&quot;);</span>
+<span class="nc" id="L35">        String bootstrapServer = System.getenv(&quot;BOOTSTRAP_SERVERS&quot;);</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        if(bootstrapServer == null) throw new IllegalArgumentException(&quot;the BOOTSTRAP_SERVERS env variable is not set&quot;);</span>
+<span class="nc" id="L37">        topic = System.getenv(&quot;TOPIC&quot;);</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">        if(topic == null) throw new IllegalArgumentException(&quot;the TOPIC env variable is not set&quot;);</span>
+
+<span class="nc" id="L40">        Properties properties = new Properties();</span>
+<span class="nc" id="L41">        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,  bootstrapServer);</span>
+<span class="nc" id="L42">        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class.getName());</span>
+<span class="nc" id="L43">        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());</span>
+<span class="nc" id="L44">        properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, &quot;SSL&quot;);</span>
+<span class="nc" id="L45">        properties.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, &quot;PEM&quot;);</span>
+<span class="nc" id="L46">        properties.put(SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, sslTruststoreCertificates);</span>
+        //safe producer
+<span class="nc" id="L48">        properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, &quot;true&quot;);</span>
+<span class="nc" id="L49">        properties.setProperty(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, &quot;1&quot;);</span>
+<span class="nc" id="L50">        properties.setProperty(ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE));</span>
+<span class="nc" id="L51">        properties.setProperty(ProducerConfig.ACKS_CONFIG, &quot;all&quot;);</span>
+        //hihgh troughput settings
+        //more information on this article: https://blog.cloudflare.com/squeezing-the-firehose/
+<span class="nc" id="L54">        properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, &quot;snappy&quot;);</span>
+<span class="nc" id="L55">        properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, &quot;20&quot;);</span>
+<span class="nc" id="L56">        properties.setProperty(ProducerConfig.BATCH_SIZE_CONFIG, Integer.toString(32*1024));</span>
+
+        // create the producer
+<span class="nc" id="L59">        producer = new KafkaProducer&lt;Long, String&gt;(properties);</span>
+
+<span class="nc" id="L61">    }</span>
+
+    public void sendTweet(Tweet tweet){
+<span class="nc" id="L64">        ProducerRecord&lt;Long, String&gt; record = new ProducerRecord&lt;Long, String&gt;(topic, tweet.getId(), tweet.getText());</span>
+<span class="nc" id="L65">        producer.send(record);</span>
+<span class="nc" id="L66">    }</span>
+
+    public void close(){
+<span class="nc" id="L69">        producer.flush();</span>
+<span class="nc" id="L70">        producer.close();</span>
+<span class="nc" id="L71">    }</span>
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.4.201905082037</span></div></body></html>

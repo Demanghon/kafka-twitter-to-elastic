@@ -1,0 +1,73 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  namespace: kafka
+  annotations:
+    strimzi.io/use-connector-resources: 'true'
+  name: kafka-connect-cluster
+spec:
+  bootstrapServers: kafka-cluster-kafka-bootstrap:9093
+  replicas: 1
+  tls:
+    trustedCertificates:
+      - secretName: kafka-cluster-cluster-ca-cert
+        certificate: ca.crt
+  image: localhost:5001/kafka-connect-cluster:latest
+  config:
+    config.storage.replication.factor: 3
+    config.storage.topic: connect-cluster-configs
+    key.converter: org.apache.kafka.connect.json.JsonConverter
+    key.converter.schemas.enable: true
+    offset.storage.replication.factor: 3
+    offset.storage.topic: connect-cluster-offsets
+    status.storage.replication.factor: 3
+    status.storage.topic: connect-cluster-status
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter.schemas.enable: true
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  labels:
+    strimzi.io/cluster: kafka-connect-cluster
+  name: twitter-source
+  namespace: kafka
+spec:
+  class: com.github.jcustenborder.kafka.connect.twitter.TwitterSourceConnector
+  config:
+    filter.keywords: cat
+    twitter.debug: true
+    kafka.delete.topic: twitter-deletes-connect
+    kafka.status.topic: twitter-status-connect
+    process.deletes: false
+    twitter.oauth.accessToken: 1495690862432501761-Ujxn5XzUAiACQP8f2sJS0Tqwuzd2pD
+    twitter.oauth.accessTokenSecret: ZeuiGAAjTXmppfJOVWPunU6nIpku8X60ISVNkfzoV0RAy
+    twitter.oauth.consumerKey: DBFznWDkjtRUz1Ehwt24kUb2x
+    twitter.oauth.consumerSecret: m48dOPTHwfEOajYctVwZ2MUjEJjOKRI5QVZkaqA6K8dobO3q1W
+  tasksMax: 1
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  labels:
+    strimzi.io/cluster: kafka-connect-cluster
+  name: elasticsearch-sink
+  namespace: kafka
+spec:
+  class: org.apache.camel.kafkaconnector.elasticsearchrest.CamelElasticsearchrestSinkConnector
+  config:
+    value.converter: org.apache.kafka.connect.storage.StringConverter
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    topics: twitter-status-connect
+    camel.sink.endpoint.hostAddresses: elasticsearch-cluster-es-http.elasticsearch.svc.cluster.local:9200
+    camel.component.elasticsearch-rest.user: elastic
+    camel.component.elasticsearch-rest.password: HmnVB03R5922b26HArc8C1wh
+    camel.component.elasticsearch-rest.enableSSL: true
+    camel.sink.endpoint.indexName: tweets
+    camel.sink.endpoint.operation: Index
+    camel.sink.endpoint.enableSSL: true
+    camel.sink.path.clusterName: elasticsearch-cluster
+    errors.tolerance: all
+    errors.log.enable: true
+    errors.log.include.messages: true
+  tasksMax: 1

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>App.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">elasticsearch-consumer</a> &gt; <a href="index.source.html" class="el_package">com.elasticsearch.consumer</a> &gt; <span class="el_source">App.java</span></div><h1>App.java</h1><pre class="source lang-java linenums">package com.elasticsearch.consumer;
+
+import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+
+/**
+ * Consume data from twitter topic and send them to ElasticSearch
+ */
+public final class App {
+    private App() {
+    }
+
+    /**
+     * Configure consumer and ElasticSearch output
+     * 
+     * @param args The arguments of the program.
+     * @throws IOException
+     * @throws ElasticsearchException
+     * @throws KeyStoreException
+     * @throws NoSuchAlgorithmException
+     * @throws CertificateException
+     * @throws KeyManagementException
+     */
+    public static void main(String[] args) throws ElasticsearchException, IOException, KeyManagementException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+<span class="nc" id="L30">        ElasticSearchTwitterClient esClient = new ElasticSearchTwitterClient();</span>
+<span class="nc" id="L31">        KafkaTwitterConsumer.getInstance().consume(new ConsumerCallback() {</span>
+
+            @Override
+            public void onDataReceived(Long id, String text) throws IllegalStateException {
+                try {
+<span class="nc" id="L36">                    esClient.pushTweet(id, text);</span>
+<span class="nc" id="L37">                } catch (ElasticsearchException | IOException e) {</span>
+<span class="nc" id="L38">                    throw new IllegalStateException(e);</span>
+                }
+<span class="nc" id="L40">            }</span>
+
+        });
+<span class="nc" id="L43">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.4.201905082037</span></div></body></html>

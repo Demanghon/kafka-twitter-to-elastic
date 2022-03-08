@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2alpha3
+kind: Config
+deploy:
+  kubectl:
+    manifests:
+      - ./infra/k8s/twitter-producer-secret.yml
+      - ./infra/k8s/twitter-producer-depl.yml
+      - ./infra/k8s/elasticsearch-consumer-depl.yml
+build:
+  artifacts:
+    - image: localhost:5000/twitter-producer
+      context: twitter-producer/twitter-producer
+      jib: {}
+    - image: localhost:5000/elasticsearch-consumer
+      context: elasticsearch-consumer/elasticsearch-consumer
+      jib: {}

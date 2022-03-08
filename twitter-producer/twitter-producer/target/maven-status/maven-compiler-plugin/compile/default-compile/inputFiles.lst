@@ -1,0 +1,5 @@
+/home/demanghon/workspaces/kafka-twitter-to-elastic/twitter-producer/twitter-producer/src/main/java/com/twitter/producer/StreamCallback.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/twitter-producer/twitter-producer/src/main/java/com/twitter/producer/TwitterStream.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/twitter-producer/twitter-producer/src/main/java/com/twitter/producer/TwitterKafkaProducer.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/twitter-producer/twitter-producer/src/main/java/com/twitter/producer/Tweet.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/twitter-producer/twitter-producer/src/main/java/com/twitter/producer/App.java

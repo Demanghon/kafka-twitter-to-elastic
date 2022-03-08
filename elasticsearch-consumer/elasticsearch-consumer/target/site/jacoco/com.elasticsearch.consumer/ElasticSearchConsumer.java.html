@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ElasticSearchConsumer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">elasticsearch-consumer</a> &gt; <a href="index.source.html" class="el_package">com.elasticsearch.consumer</a> &gt; <span class="el_source">ElasticSearchConsumer.java</span></div><h1>ElasticSearchConsumer.java</h1><pre class="source lang-java linenums">package com.elasticsearch.consumer;
+
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Properties;
+
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.LongDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+public class ElasticSearchConsumer {
+    
+    public static ElasticSearchConsumer instance;
+
+    public static ElasticSearchConsumer getInstance(){
+<span class="nc bnc" id="L22" title="All 2 branches missed.">        if(instance == null)</span>
+<span class="nc" id="L23">            instance = new ElasticSearchConsumer();</span>
+<span class="nc" id="L24">        return instance;</span>
+    }
+
+    private KafkaConsumer&lt;Long, String&gt; consumer;
+
+<span class="nc" id="L29">    private ElasticSearchConsumer(){</span>
+<span class="nc" id="L30">        String sslTruststoreCertificates = System.getenv(&quot;KAFKA_CA_CRT&quot;);</span>
+<span class="nc bnc" id="L31" title="All 2 branches missed.">        if(sslTruststoreCertificates == null) throw new IllegalArgumentException(&quot;the KAFKA_CA_CRT env variable is not set&quot;);</span>
+<span class="nc" id="L32">        String bootstrapServer = System.getenv(&quot;BOOTSTRAP_SERVERS&quot;);</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        if(bootstrapServer == null) throw new IllegalArgumentException(&quot;the BOOTSTRAP_SERVERS env variable is not set&quot;);</span>
+<span class="nc" id="L34">        String topic = System.getenv(&quot;TOPIC&quot;);</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if(topic == null) throw new IllegalArgumentException(&quot;the TOPIC env variable is not set&quot;);</span>
+
+        // create consumers properties
+<span class="nc" id="L38">        Properties properties = new Properties();</span>
+<span class="nc" id="L39">        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServer);</span>
+<span class="nc" id="L40">        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, LongDeserializer.class.getName());</span>
+<span class="nc" id="L41">        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());</span>
+<span class="nc" id="L42">        properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, &quot;SSL&quot;);</span>
+<span class="nc" id="L43">        properties.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, &quot;PEM&quot;);</span>
+<span class="nc" id="L44">        properties.put(SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, sslTruststoreCertificates);</span>
+<span class="nc" id="L45">        properties.put(ConsumerConfig.GROUP_ID_CONFIG, &quot;elasticsearch-consumer&quot;);</span>
+<span class="nc" id="L46">        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, &quot;earliest&quot;);</span>
+
+<span class="nc" id="L48">        consumer = new KafkaConsumer&lt;Long, String&gt;(properties);</span>
+
+<span class="nc" id="L50">        consumer.subscribe(Collections.singleton(topic));</span>
+<span class="nc" id="L51">    }</span>
+
+    public void consume(ConsumerCallback callback){
+        //poll for new data
+<span class="nc" id="L55">        while(true){</span>
+<span class="nc" id="L56">            ConsumerRecords&lt;Long, String&gt; records = consumer.poll(Duration.ofMillis(100));</span>
+
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            for(ConsumerRecord&lt;Long, String&gt; record:records){</span>
+<span class="nc" id="L59">                callback.onDataRecived(record.key(), record.value());</span>
+            }
+
+        }
+    }
+
+    public void close(){
+<span class="nc" id="L66">        consumer.close();</span>
+<span class="nc" id="L67">    }</span>
+    
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.4.201905082037</span></div></body></html>

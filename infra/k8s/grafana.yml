@@ -1,0 +1,149 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+data:
+  prometheus.yaml: |
+      apiVersion: 1
+      datasources: 
+        - access: proxy
+          editable: true
+          name: prometheus
+          orgId: 1
+          type: prometheus
+          url: http://prometheus-operated:9090
+          version: 1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  dashboards.yaml: |
+      apiVersion: 1
+      providers:
+        - name: Default    # A uniquely identifiable name for the provider
+          folder: Kafka # The folder where to place the dashboards
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: strimzi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: grafana
+  template:
+    metadata:
+      labels:
+        name: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:7.3.7
+        ports:
+        - name: grafana
+          containerPort: 3000
+          protocol: TCP
+        volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+        - name: grafana-logs
+          mountPath: /var/log/grafana
+        - name: grafana-datasources
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: grafana-dashboards
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: grafana-kafka-dashboard
+          mountPath: /var/lib/grafana/dashboards/kafka.json
+          subPath: kafka.json
+        - name: grafana-kafka-exporter-dashboard
+          mountPath: /var/lib/grafana/dashboards/kafka-exporter.json
+          subPath: kafka-exporter.json
+        - name: grafana-zookeeper-dashboard
+          mountPath: /var/lib/grafana/dashboards/zookeeper.json
+          subPath: zookeeper.json
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: grafana-data
+        emptyDir: {}
+      - name: grafana-logs
+        emptyDir: {}
+      - name: grafana-datasources
+        configMap:
+          defaultMode: 420
+          name: grafana-datasources
+      - name: grafana-dashboards
+        configMap:
+          defaultMode: 420
+          name: grafana-dashboards
+      - name: grafana-kafka-dashboard
+        configMap:
+          defaultMode: 420
+          name: grafana-kafka-dashboard
+      - name: grafana-kafka-exporter-dashboard
+        configMap:
+          defaultMode: 420
+          name: grafana-kafka-exporter-dashboard
+      - name: grafana-zookeeper-dashboard
+        configMap:
+          defaultMode: 420
+          name: grafana-zookeeper-dashboard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: strimzi
+spec:
+  ports:
+  - name: grafana
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  selector:
+    name: grafana
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: monitoring
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    #nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  rules:
+  - host: grafana.dev
+    http:
+      paths:
+      - backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
+        path: /
+        pathType: Prefix

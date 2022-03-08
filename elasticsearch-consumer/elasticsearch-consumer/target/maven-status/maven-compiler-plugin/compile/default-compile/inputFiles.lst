@@ -1,0 +1,5 @@
+/home/demanghon/workspaces/kafka-twitter-to-elastic/elasticsearch-consumer/elasticsearch-consumer/src/main/java/com/elasticsearch/consumer/Tweet.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/elasticsearch-consumer/elasticsearch-consumer/src/main/java/com/elasticsearch/consumer/App.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/elasticsearch-consumer/elasticsearch-consumer/src/main/java/com/elasticsearch/consumer/ElasticSearchTwitterClient.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/elasticsearch-consumer/elasticsearch-consumer/src/main/java/com/elasticsearch/consumer/ConsumerCallback.java
+/home/demanghon/workspaces/kafka-twitter-to-elastic/elasticsearch-consumer/elasticsearch-consumer/src/main/java/com/elasticsearch/consumer/KafkaTwitterConsumer.java
